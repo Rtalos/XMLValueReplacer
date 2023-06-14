@@ -7,7 +7,8 @@ namespace XMLValueReplacer;
 
 internal class TemplateGenerator
 {
-    public string FileName { get; } = "template.xml";
+    public string XmlFileName { get; } = "template.xml";
+    public string TextFileName { get; } = "replacementvalues.txt";
     public string Prefix { get; }
     public XPathOptionsEnum XPathOptions { get; }
     private XDocument Document { get; }
@@ -22,7 +23,7 @@ internal class TemplateGenerator
         XPathOptions = xPathOptions;
     }
 
-    public XDocument Generate()
+    public (XDocument Document, string ReplacementValues) Generate()
     {
         var xmlInformation = new XmlInformation();
 
@@ -56,12 +57,17 @@ internal class TemplateGenerator
 
                 if (!node.HasElements)
                 {
-                    var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.FullNameXPath == element.Element);
+                    var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.ModifiedFullNameXPath == element.Element);
 
                     if (nodeInformation is null)
                         throw new NullReferenceException($"Could not find replacement value for XPath: //{element.Element}");
 
                     var replacement = nodeInformation.NameReplacement.Replace("}", $"{i + 1}}}");
+                    nodeInformation.NameReplacement = replacement;
+                    nodeInformation.ModifiedFullNameXPath = $"{nodeInformation.FullNameXPath}{i + 1}";
+
+                    xmlInformation.ReplacementValues.Add(replacement);
+
                     node.SetValue(replacement);
                 }
             }
@@ -81,11 +87,15 @@ internal class TemplateGenerator
                 if (nodeInformation is null)
                     throw new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
 
+                xmlInformation.ReplacementValues.Add(nodeInformation.NameReplacement);
+
                 node.SetValue(nodeInformation.NameReplacement);
             }
         }
 
-        return Document;
+        var replacementValues = string.Join("\n", xmlInformation.ReplacementValues.Select(x => x));
+            
+        return (Document, replacementValues);
     }
 
     private XmlNamespaceManager GetnamespaceManager(XmlInformation xmlInformation)
@@ -133,7 +143,6 @@ internal class TemplateGenerator
 
             foreach (var ns in xmlInformation.Namespaces)
             {
-                //var shortened = String.Format("{0:X}", ns.GetHashCode());
                 var shortened = Helper.RandomString(3);
                 namespaceMappings.TryAdd(ns, shortened);
             }
@@ -144,10 +153,7 @@ internal class TemplateGenerator
                 fullNameXPath = fullNameXPath.Replace($"{{{ns}}}", $"{namespaceMappings.GetValueOrDefault(ns)}:");
             }
 
-            var nodeInformation = new NodeInformation();
-
-            nodeInformation.NameReplacement = $"{{{Prefix}{nameReplacement}}}";
-            nodeInformation.FullNameXPath = fullNameXPath;
+            var nodeInformation = new NodeInformation(fullNameXPath, $"{{{Prefix}{nameReplacement}}}");
 
             xmlInformation.NamespaceMappings = namespaceMappings;
             xmlInformation.NodeInformation.Add(nodeInformation);
