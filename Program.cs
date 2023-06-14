@@ -44,3 +44,4 @@ var document = generator.Generate();
 document.Save("template.xml");
 
 Console.WriteLine($"Successfully created template.xml at path: {Helper.GetCreatedFilePath(generator.FileName)}");
+Console.ReadKey();
