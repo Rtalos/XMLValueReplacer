@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Reflection;
+using System.Xml.Linq;
 using XMLValueReplacer;
 
 Console.WriteLine("Enter file path");
@@ -39,9 +40,14 @@ XPathOptionsEnum xpathOptions = xpathOptionInput.ToLowerInvariant() switch
 
 var generator = new TemplateGenerator(xml, prefixInput, xpathOptions);
 
-var document = generator.Generate();
+var generated = generator.Generate();
 
-document.Save("template.xml");
+var xmlFilePath = Helper.CreateFilePath(generator.XmlFileName);
+var textFilePath = Helper.CreateFilePath(generator.TextFileName);
 
-Console.WriteLine($"Successfully created template.xml at path: {Helper.GetCreatedFilePath(generator.FileName)}");
+generated.Document.Save(xmlFilePath);
+
+File.WriteAllText(textFilePath, generated.ReplacementValues);
+
+Console.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(generator.XmlFileName)}");
 Console.ReadKey();
