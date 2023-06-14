@@ -24,9 +24,11 @@ Console.WriteLine("Enter desired prefix (default is none)");
 var prefixInput = Console.ReadLine() ?? string.Empty;
 
 Console.WriteLine("Do you want replacement paths to be XPath or short XPath? (s or short for short XPaths, x or xpath for XPath. Default is XPath)");
-var xpathOptionInput = Console.ReadLine() ?? "x";
+var xpathOptionInput = Console.ReadLine();
 
-XPathOptionsEnum xpathOptions = xpathOptionInput switch
+xpathOptionInput = string.IsNullOrEmpty(xpathOptionInput) ? "x" : xpathOptionInput;
+
+XPathOptionsEnum xpathOptions = xpathOptionInput.ToLowerInvariant() switch
 {
     "x" => XPathOptionsEnum.XPath,
     "xpath" => XPathOptionsEnum.XPath,

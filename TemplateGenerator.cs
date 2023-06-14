@@ -10,10 +10,13 @@ internal class TemplateGenerator
     public string FileName { get; } = "template.xml";
     public string Prefix { get; }
     public XPathOptionsEnum XPathOptions { get; }
-    private XDocument Document { get; set; }
+    private XDocument Document { get; }
 
     public TemplateGenerator(XDocument document, string prefix, XPathOptionsEnum xPathOptions)
     {
+        if (document is null)
+            throw new ArgumentNullException(nameof(document));
+
         Document = document;
         Prefix = prefix;
         XPathOptions = xPathOptions;
@@ -82,8 +85,6 @@ internal class TemplateGenerator
             }
         }
 
-        //doc.Save("template.xml");
-
         return Document;
     }
 
@@ -112,13 +113,13 @@ internal class TemplateGenerator
             List<string> path = xpathOptions switch
             {
                 XPathOptionsEnum.XPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName).Reverse().ToList(),
-                XPathOptionsEnum.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName.Length > 3 ? e.Name.LocalName.Substring(0, 3) : e.Name.LocalName).Reverse().ToList(),
+                XPathOptionsEnum.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName == doc.Root.Name.LocalName ? string.Empty : e.Name.LocalName).Reverse().ToList(),
                 _ => throw new NotImplementedException(),
             };
 
             var fullNamePath = element.AncestorsAndSelf().Select(e => e.Name.ToString()).Reverse().ToList();
 
-            var nameReplacement = string.Join("-", path);
+            var nameReplacement = string.Join("-", path).TrimStart('-');
             var fullNameXPath = string.Join("/", fullNamePath);
 
             var namespaces = Regex.Matches(fullNameXPath, @"\{(.+?)\}")
