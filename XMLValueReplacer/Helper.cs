@@ -10,9 +10,14 @@ internal static class Helper
             .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 
-    internal static string GetCreatedFilePath(string filePath)
+    internal static string GetFilePath(string filePath)
     {
         return Path.GetFullPath(filePath);
+    }
+
+    internal static string CreateFilePath(string fileName)
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), fileName);
     }
 }
 
