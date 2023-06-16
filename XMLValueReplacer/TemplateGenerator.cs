@@ -30,71 +30,18 @@ internal class TemplateGenerator
         CreateXPaths(xmlInformation, XPathOptions, Document);
         var namespaceManager = GetnamespaceManager(xmlInformation);
 
-        var q = xmlInformation.NodeInformation.Select(x => x.FullNameXPath).GroupBy(x => x)
+        var nodeObj = xmlInformation.NodeInformation.Select(x => x.FullNameXPath).GroupBy(x => x)
                       .Where(g => g.Count() > 1)
-                      .Select(y => new { Element = y.Key, Counter = y.Count() }).ToList();
+                      .Select(y => (Element: y.Key, Counter: y.Count())).ToList();
 
-        var dupes = q.Select(x => x.Element);
+        var dupes = nodeObj.Select(x => x.Element);
         var remainingXPaths = xmlInformation.NodeInformation.Select(x => x.FullNameXPath).Except(dupes);
 
-        foreach (var element in q)
-        {
-            for (int i = 0; i < element.Counter; i++)
-            {
-                XElement? node = null;
-                if (i == 0)
-                {
-                    node = Document.XPathSelectElement($"//{element.Element}", namespaceManager);
-                }
+        ReplaceDoubles(xmlInformation, namespaceManager, nodeObj);
+        ReplaceSingles(xmlInformation, namespaceManager, remainingXPaths);
 
-                if (i > 0)
-                {
-                    node = Document.XPathSelectElement($"(//{element.Element})[{i + 1}]", namespaceManager);
-                }
+        string replacementValues = Helper.GenerateTxtFile(xmlInformation, Prefix);
 
-                if (node is null)
-                    throw new NullReferenceException($"Could not find node with XPath: //{element.Element}");
-
-                if (!node.HasElements)
-                {
-                    var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.ModifiedFullNameXPath == element.Element);
-
-                    if (nodeInformation is null)
-                        throw new NullReferenceException($"Could not find replacement value for XPath: //{element.Element}");
-
-                    var replacement = nodeInformation.NameReplacement.Replace("}", $"{i + 1}}}");
-                    nodeInformation.NameReplacement = replacement;
-                    nodeInformation.ModifiedFullNameXPath = $"{nodeInformation.FullNameXPath}{i + 1}";
-
-                    xmlInformation.ReplacementValues.Add(replacement);
-
-                    node.SetValue(replacement);
-                }
-            }
-        }
-
-        foreach (var xpath in remainingXPaths)
-        {
-            var node = Document.XPathSelectElement($"//{xpath}", namespaceManager);
-
-            if (node is null)
-                throw new NullReferenceException($"Could not find node with XPath: //{xpath}");
-
-            if (!node.HasElements)
-            {
-                var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.FullNameXPath == xpath);
-
-                if (nodeInformation is null)
-                    throw new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
-
-                xmlInformation.ReplacementValues.Add(nodeInformation.NameReplacement);
-
-                node.SetValue(nodeInformation.NameReplacement);
-            }
-        }
-
-        var replacementValues = string.Join("\n", xmlInformation.ReplacementValues.Select(x => x));
-            
         return (Document, replacementValues);
     }
 
@@ -157,6 +104,68 @@ internal class TemplateGenerator
 
             xmlInformation.NamespaceMappings = namespaceMappings;
             xmlInformation.NodeInformation.Add(nodeInformation);
+        }
+    }
+
+    private void ReplaceDoubles(XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, List<(string Element, int Counter)> nodeObj)
+    {
+        foreach (var element in nodeObj)
+        {
+            for (int i = 0; i < element.Counter; i++)
+            {
+                XElement? node = null;
+                if (i == 0)
+                {
+                    node = Document.XPathSelectElement($"//{element.Element}", namespaceManager);
+                }
+
+                if (i > 0)
+                {
+                    node = Document.XPathSelectElement($"(//{element.Element})[{i + 1}]", namespaceManager);
+                }
+
+                if (node is null)
+                    throw new NullReferenceException($"Could not find node with XPath: //{element.Element}");
+
+                if (!node.HasElements)
+                {
+                    var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.ModifiedFullNameXPath == element.Element);
+
+                    if (nodeInformation is null)
+                        throw new NullReferenceException($"Could not find replacement value for XPath: //{element.Element}");
+
+                    var replacement = nodeInformation.NameReplacement.Replace("}", $"{i + 1}}}");
+                    nodeInformation.NameReplacement = replacement;
+                    nodeInformation.ModifiedFullNameXPath = $"{nodeInformation.FullNameXPath}{i + 1}";
+
+                    xmlInformation.ReplacementValues.Add(replacement);
+
+                    node.SetValue(replacement);
+                }
+            }
+        }
+    }
+
+    private void ReplaceSingles(XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, IEnumerable<string> remainingXPaths)
+    {
+        foreach (var xpath in remainingXPaths)
+        {
+            var node = Document.XPathSelectElement($"//{xpath}", namespaceManager);
+
+            if (node is null)
+                throw new NullReferenceException($"Could not find node with XPath: //{xpath}");
+
+            if (!node.HasElements)
+            {
+                var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.FullNameXPath == xpath);
+
+                if (nodeInformation is null)
+                    throw new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
+
+                xmlInformation.ReplacementValues.Add(nodeInformation.NameReplacement);
+
+                node.SetValue(nodeInformation.NameReplacement);
+            }
         }
     }
 }

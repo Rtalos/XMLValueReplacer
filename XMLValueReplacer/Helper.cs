@@ -19,5 +19,20 @@ internal static class Helper
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), fileName);
     }
+
+    internal static void WriteExceptionErrorMessage<TException>(TException exception) where TException : Exception
+    {
+        Console.BackgroundColor = ConsoleColor.Red;
+        Console.WriteLine(exception.Message);
+        Console.ResetColor();
+    }
+
+    internal static string GenerateTxtFile(XmlInformation xmlInformation, string prefix)
+    {
+        var replacementValues = xmlInformation.NodeInformation.Select(x => x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""));
+        var txt = string.Join("\n", replacementValues);
+
+        return txt.TrimStart().TrimEnd();
+    }
 }
 
