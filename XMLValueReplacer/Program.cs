@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+﻿using System.Xml;
 using System.Xml.Linq;
 using XMLValueReplacer;
 
@@ -13,9 +13,15 @@ try
 {
     xml = XDocument.Load(filePathInput);
 }
-catch (IOException)
+catch (IOException e)
 {
-    throw new IOException("File was not found");
+    Helper.WriteExceptionErrorMessage(e);
+    throw e;
+}
+catch (XmlException e)
+{
+    Helper.WriteExceptionErrorMessage(e);
+    throw e;
 }
 
 if (xml is null)
