@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XMLValueReplacer", "XMLValueReplacer\XMLValueReplacer.csproj", "{02AC216C-788C-4738-B994-ED9E754A0AB6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XMLValueReplacer", "XMLValueReplacer\XMLValueReplacer.csproj", "{02AC216C-788C-4738-B994-ED9E754A0AB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{1C4B7E37-6257-4078-8E56-0CA38A02BC15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{02AC216C-788C-4738-B994-ED9E754A0AB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02AC216C-788C-4738-B994-ED9E754A0AB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02AC216C-788C-4738-B994-ED9E754A0AB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C4B7E37-6257-4078-8E56-0CA38A02BC15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C4B7E37-6257-4078-8E56-0CA38A02BC15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C4B7E37-6257-4078-8E56-0CA38A02BC15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C4B7E37-6257-4078-8E56-0CA38A02BC15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

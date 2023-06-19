@@ -1,7 +1,15 @@
-﻿namespace XMLValueReplacer;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+
+namespace XMLValueReplacer;
 
 internal static class Helper
 {
+    internal const string xlsx = "xlsx";
+    internal const string xml = "xml";
+    internal const string txt = "txt";
+
     internal static string RandomString(int length)
     {
         var random = new Random();
@@ -10,13 +18,31 @@ internal static class Helper
             .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 
+    internal static string GetFileNameFromPath(string path)
+    {
+        return Path.GetFileNameWithoutExtension(path);
+    }
+
     internal static string GetFilePath(string filePath)
     {
         return Path.GetFullPath(filePath);
     }
 
-    internal static string CreateFilePath(string fileName)
+    internal static string CreateFilePath(FileType fileType, string fileName, string originalFilename = "")
     {
+        if (!String.IsNullOrEmpty(originalFilename))
+        {
+            fileName = $"{originalFilename}_{fileName}";
+        }
+
+        fileName = fileType switch
+        {
+            FileType.Excel => $"{fileName}.{xlsx}",
+            FileType.Xml => $"{fileName}.{xml}",
+            FileType.Txt => $"{fileName}.{txt}",
+            _ => throw new NotImplementedException(),
+        };
+
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), fileName);
     }
 
@@ -29,10 +55,61 @@ internal static class Helper
 
     internal static string GenerateTxtFile(XmlInformation xmlInformation, string prefix)
     {
-        var replacementValues = xmlInformation.NodeInformation.Select(x => x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""));
-        var txt = string.Join("\n", replacementValues);
+        var rv = xmlInformation.NodeInformation
+                                                .Where(x => x.OriginalNodeValue != null)
+                                                .Select(x => x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""));
+
+        var txt = string.Join("\n", rv);
 
         return txt.TrimStart().TrimEnd();
+    }
+
+    internal static void GenerateExcelFile(XmlInformation xmlInformation, string fileName, string originalFileName)
+    {
+        var values = xmlInformation.NodeInformation.Where(x => x.OriginalNodeValue != null).Select(x => (ReplacementValue: x.NameReplacement, OriginalValue:x.OriginalNodeValue));
+
+        using var spreadsheet = SpreadsheetDocument.Create(CreateFilePath(FileType.Excel, fileName, originalFileName), SpreadsheetDocumentType.Workbook);
+
+        var workbookpart = spreadsheet.AddWorkbookPart();
+        workbookpart.Workbook = new Workbook();
+        var worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
+        SheetData data = new SheetData();
+        worksheetPart.Worksheet = new Worksheet(data);
+
+        Sheets sheets = spreadsheet.WorkbookPart!.Workbook.AppendChild(new Sheets());
+
+        Sheet sheet = new Sheet()
+        {
+            Id = spreadsheet.WorkbookPart.GetIdOfPart(worksheetPart),
+            SheetId = 1,
+            Name = "Sheet1"
+        };
+
+        var replacementValuesRow = new Row();
+        var originalValuesRow = new Row();
+
+        foreach (var value in values)
+        {
+            replacementValuesRow.Append(new Cell
+            {
+                DataType = CellValues.InlineString,
+                InlineString = new InlineString() { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(value.ReplacementValue) }
+            });
+
+            originalValuesRow.Append(new Cell
+            {
+                DataType = CellValues.InlineString,
+                InlineString = new InlineString() { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(value.OriginalValue) }
+            });
+        }
+
+        data.Append(replacementValuesRow);
+        data.Append(originalValuesRow);
+
+        sheets.Append(sheet);
+
+        spreadsheet.Save();
+        spreadsheet.Dispose();
     }
 }
 
