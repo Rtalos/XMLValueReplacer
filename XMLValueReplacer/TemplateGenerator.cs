@@ -1,19 +1,24 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+
+[assembly: InternalsVisibleTo("Tests")]
 
 namespace XMLValueReplacer;
 
 internal class TemplateGenerator
 {
-    public string XmlFileName { get; } = "template.xml";
+    public string FileName { get; } = "modified";
     public string TextFileName { get; } = "replacementvalues.txt";
     public string Prefix { get; }
+    public string OriginalFileName { get; }
     public XPathOptionsEnum XPathOptions { get; }
     private XDocument Document { get; }
 
-    public TemplateGenerator(XDocument document, string prefix, XPathOptionsEnum xPathOptions)
+    public TemplateGenerator(XDocument document, string prefix, string originalFileName, XPathOptionsEnum xPathOptions)
     {
         if (document is null)
             throw new ArgumentNullException(nameof(document));
@@ -21,6 +26,7 @@ internal class TemplateGenerator
         Document = document;
         Prefix = prefix;
         XPathOptions = xPathOptions;
+        OriginalFileName = Helper.GetFileNameFromPath(originalFileName);
     }
 
     public (XDocument Document, string ReplacementValues) Generate()
@@ -41,6 +47,8 @@ internal class TemplateGenerator
         ReplaceSingles(xmlInformation, namespaceManager, remainingXPaths);
 
         string replacementValues = Helper.GenerateTxtFile(xmlInformation, Prefix);
+
+        Helper.GenerateExcelFile(xmlInformation, FileName, OriginalFileName);
 
         return (Document, replacementValues);
     }
@@ -70,7 +78,7 @@ internal class TemplateGenerator
             List<string> path = xpathOptions switch
             {
                 XPathOptionsEnum.XPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName).Reverse().ToList(),
-                XPathOptionsEnum.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName == doc.Root.Name.LocalName ? string.Empty : e.Name.LocalName).Reverse().ToList(),
+                XPathOptionsEnum.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName == doc?.Root?.Name.LocalName ? string.Empty : e.Name.LocalName).Reverse().ToList(),
                 _ => throw new NotImplementedException(),
             };
 
@@ -96,7 +104,6 @@ internal class TemplateGenerator
 
             foreach (var ns in xmlInformation.Namespaces)
             {
-                var a = Regex.Replace(fullNameXPath, $@"{{{ns}}}", $"{namespaceMappings.GetValueOrDefault(ns)}:");
                 fullNameXPath = fullNameXPath.Replace($"{{{ns}}}", $"{namespaceMappings.GetValueOrDefault(ns)}:");
             }
 
@@ -137,6 +144,7 @@ internal class TemplateGenerator
                     var replacement = nodeInformation.NameReplacement.Replace("}", $"{i + 1}}}");
                     nodeInformation.NameReplacement = replacement;
                     nodeInformation.ModifiedFullNameXPath = $"{nodeInformation.FullNameXPath}{i + 1}";
+                    nodeInformation.OriginalNodeValue = node.Value;
 
                     xmlInformation.ReplacementValues.Add(replacement);
 
@@ -161,6 +169,8 @@ internal class TemplateGenerator
 
                 if (nodeInformation is null)
                     throw new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
+
+                nodeInformation.OriginalNodeValue = node.Value;
 
                 xmlInformation.ReplacementValues.Add(nodeInformation.NameReplacement);
 

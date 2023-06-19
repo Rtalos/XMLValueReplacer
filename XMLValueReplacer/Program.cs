@@ -44,16 +44,16 @@ XPathOptionsEnum xpathOptions = xpathOptionInput.ToLowerInvariant() switch
     _ => throw new NotImplementedException(),
 };
 
-var generator = new TemplateGenerator(xml, prefixInput, xpathOptions);
+var generator = new TemplateGenerator(xml, prefixInput, filePathInput, xpathOptions);
 
 var generated = generator.Generate();
 
-var xmlFilePath = Helper.CreateFilePath(generator.XmlFileName);
-var textFilePath = Helper.CreateFilePath(generator.TextFileName);
+var xmlFilePath = Helper.CreateFilePath(FileType.Xml, generator.FileName, generator.OriginalFileName);
+var textFilePath = Helper.CreateFilePath(FileType.Txt, generator.TextFileName);
 
 generated.Document.Save(xmlFilePath);
 
-File.WriteAllText(textFilePath, generated.ReplacementValues);
+//File.WriteAllText(textFilePath, generated.ReplacementValues);
 
-Console.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(generator.XmlFileName)}");
+Console.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(generator.FileName)}");
 Console.ReadKey();
