@@ -1,8 +1,10 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using XMLValueReplacer.Domain.Entities;
+using XMLValueReplacer.Domain.Enums;
 
-namespace XMLValueReplacer;
+namespace XMLValueReplacer.Common;
 
 internal static class Helper
 {
@@ -30,7 +32,7 @@ internal static class Helper
 
     internal static string CreateFilePath(FileType fileType, string fileName, string originalFilename = "")
     {
-        if (!String.IsNullOrEmpty(originalFilename))
+        if (!string.IsNullOrEmpty(originalFilename))
         {
             fileName = $"{originalFilename}_{fileName}";
         }
@@ -50,7 +52,7 @@ internal static class Helper
     {
         WriteExceptionErrorMessage(exception.Message);
     }
-    
+
     internal static void WriteExceptionErrorMessage(string message)
     {
         Console.BackgroundColor = ConsoleColor.Red;
@@ -77,13 +79,13 @@ internal static class Helper
     internal static void GenerateExcelFile(XmlInformation xmlInformation, string fileName, string originalFileName, string prefix)
     {
         var filePath = CreateFilePath(FileType.Excel, fileName, originalFileName);
-        
+
         if (File.Exists(filePath))
         {
             File.Delete(filePath);
         }
-        
-        var values = xmlInformation.NodeInformation.Where(x => x.OriginalNodeValue != null).Select(x => (ReplacementValue: x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""), OriginalValue:x.OriginalNodeValue));
+
+        var values = xmlInformation.NodeInformation.Where(x => x.OriginalNodeValue != null).Select(x => (ReplacementValue: x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""), OriginalValue: x.OriginalNodeValue));
 
         using var spreadsheet = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
 
@@ -110,13 +112,13 @@ internal static class Helper
             replacementValuesRow.Append(new Cell
             {
                 DataType = CellValues.InlineString,
-                InlineString = new InlineString() { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(value.ReplacementValue) }
+                InlineString = new InlineString() { Text = new Text(value.ReplacementValue) }
             });
 
             originalValuesRow.Append(new Cell
             {
                 DataType = CellValues.InlineString,
-                InlineString = new InlineString() { Text = new DocumentFormat.OpenXml.Spreadsheet.Text(value.OriginalValue) }
+                InlineString = new InlineString() { Text = new Text(value.OriginalValue) }
             });
         }
 
