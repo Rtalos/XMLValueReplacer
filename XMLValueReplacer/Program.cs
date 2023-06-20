@@ -6,26 +6,27 @@ Console.WriteLine("Enter file path");
 var filePathInput = Console.ReadLine();
 
 if (string.IsNullOrEmpty(@filePathInput))
-    throw new NullReferenceException("No path was given");
+{
+    Helper.WriteExceptionErrorMessage("No path was given");
+}
 
-XDocument? xml;
+XDocument? xml = null;
 try
 {
-    xml = XDocument.Load(filePathInput);
+    xml = XDocument.Load(filePathInput!);
 }
 catch (IOException e)
 {
     Helper.WriteExceptionErrorMessage(e);
-    throw e;
 }
 catch (XmlException e)
 {
     Helper.WriteExceptionErrorMessage(e);
-    throw e;
+
 }
 
 if (xml is null)
-    throw new NullReferenceException("File was not found");
+    Helper.WriteExceptionErrorMessage("File was not found");
 
 Console.WriteLine("Enter desired prefix (default is none)");
 var prefixInput = Console.ReadLine() ?? string.Empty;
@@ -44,7 +45,7 @@ XPathOptionsEnum xpathOptions = xpathOptionInput.ToLowerInvariant() switch
     _ => throw new NotImplementedException(),
 };
 
-var generator = new TemplateGenerator(xml, prefixInput, filePathInput, xpathOptions);
+var generator = new TemplateGenerator(xml!, prefixInput, filePathInput!, xpathOptions);
 
 var generated = generator.Generate();
 
