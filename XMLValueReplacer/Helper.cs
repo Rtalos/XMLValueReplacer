@@ -48,11 +48,7 @@ internal static class Helper
 
     internal static void WriteExceptionErrorMessage<TException>(TException exception) where TException : Exception
     {
-        Console.BackgroundColor = ConsoleColor.Red;
-        Console.WriteLine(exception.Message);
-        Console.ResetColor();
-        
-        Environment.Exit(0);
+        WriteExceptionErrorMessage(exception.Message);
     }
     
     internal static void WriteExceptionErrorMessage(string message)
@@ -60,6 +56,9 @@ internal static class Helper
         Console.BackgroundColor = ConsoleColor.Red;
         Console.WriteLine(message);
         Console.ResetColor();
+
+        Console.WriteLine("Press any key to exit...");
+        Console.ReadKey();
 
         Environment.Exit(0);
     }
