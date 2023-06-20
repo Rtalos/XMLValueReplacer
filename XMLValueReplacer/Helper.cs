@@ -64,9 +64,9 @@ internal static class Helper
         return txt.TrimStart().TrimEnd();
     }
 
-    internal static void GenerateExcelFile(XmlInformation xmlInformation, string fileName, string originalFileName)
+    internal static void GenerateExcelFile(XmlInformation xmlInformation, string fileName, string originalFileName, string prefix)
     {
-        var values = xmlInformation.NodeInformation.Where(x => x.OriginalNodeValue != null).Select(x => (ReplacementValue: x.NameReplacement, OriginalValue:x.OriginalNodeValue));
+        var values = xmlInformation.NodeInformation.Where(x => x.OriginalNodeValue != null).Select(x => (ReplacementValue: x.NameReplacement.Replace($"{{{prefix}", "").Replace("}", ""), OriginalValue:x.OriginalNodeValue));
 
         using var spreadsheet = SpreadsheetDocument.Create(CreateFilePath(FileType.Excel, fileName, originalFileName), SpreadsheetDocumentType.Workbook);
 
