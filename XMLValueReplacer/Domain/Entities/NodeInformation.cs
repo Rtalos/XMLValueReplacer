@@ -1,4 +1,4 @@
-﻿namespace XMLValueReplacer;
+﻿namespace XMLValueReplacer.Domain.Entities;
 
 internal class NodeInformation
 {

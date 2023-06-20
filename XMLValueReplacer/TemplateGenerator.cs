@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using XMLValueReplacer.Common;
+using XMLValueReplacer.Domain.Entities;
+using XMLValueReplacer.Domain.Enums;
 
 [assembly: InternalsVisibleTo("Tests")]
 
@@ -15,10 +18,10 @@ internal class TemplateGenerator
     public string TextFileName { get; } = "replacementvalues.txt";
     public string Prefix { get; }
     public string OriginalFileName { get; }
-    public XPathOptionsEnum XPathOptions { get; }
+    public XPathOptions XPathOptions { get; }
     private XDocument Document { get; }
 
-    public TemplateGenerator(XDocument document, string prefix, string originalFileName, XPathOptionsEnum xPathOptions)
+    public TemplateGenerator(XDocument document, string prefix, string originalFileName, XPathOptions xPathOptions)
     {
         if (document is null)
             throw new ArgumentNullException(nameof(document));
@@ -69,7 +72,7 @@ internal class TemplateGenerator
         return manager;
     }
 
-    private void CreateXPaths(XmlInformation xmlInformation, XPathOptionsEnum xpathOptions, XDocument doc)
+    private void CreateXPaths(XmlInformation xmlInformation, XPathOptions xpathOptions, XDocument doc)
     {
         var namespaceMappings = new Dictionary<string, string>();
 
@@ -77,8 +80,8 @@ internal class TemplateGenerator
         {
             List<string> path = xpathOptions switch
             {
-                XPathOptionsEnum.XPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName).Reverse().ToList(),
-                XPathOptionsEnum.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName == doc?.Root?.Name.LocalName ? string.Empty : e.Name.LocalName).Reverse().ToList(),
+                XPathOptions.XPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName).Reverse().ToList(),
+                XPathOptions.ShortXPath => element.AncestorsAndSelf().Select(e => e.Name.LocalName == doc?.Root?.Name.LocalName ? string.Empty : e.Name.LocalName).Reverse().ToList(),
                 _ => throw new NotImplementedException(),
             };
 

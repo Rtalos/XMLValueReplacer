@@ -1,4 +1,4 @@
-﻿namespace XMLValueReplacer;
+﻿namespace XMLValueReplacer.Domain.Enums;
 
 internal enum FileType
 {
