@@ -57,4 +57,5 @@ generated.Document.Save(xmlFilePath);
 //File.WriteAllText(textFilePath, generated.ReplacementValues);
 
 Console.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(generator.FileName)}");
+Console.WriteLine("Press any key to exit...");
 Console.ReadKey();
