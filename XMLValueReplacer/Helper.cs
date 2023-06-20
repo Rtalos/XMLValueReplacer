@@ -51,6 +51,17 @@ internal static class Helper
         Console.BackgroundColor = ConsoleColor.Red;
         Console.WriteLine(exception.Message);
         Console.ResetColor();
+        
+        Environment.Exit(0);
+    }
+    
+    internal static void WriteExceptionErrorMessage(string message)
+    {
+        Console.BackgroundColor = ConsoleColor.Red;
+        Console.WriteLine(message);
+        Console.ResetColor();
+
+        Environment.Exit(0);
     }
 
     internal static string GenerateTxtFile(XmlInformation xmlInformation, string prefix)
