@@ -48,7 +48,7 @@ internal class TemplateGenerator
 
         string replacementValues = Helper.GenerateTxtFile(xmlInformation, Prefix);
 
-        Helper.GenerateExcelFile(xmlInformation, FileName, OriginalFileName);
+        Helper.GenerateExcelFile(xmlInformation, FileName, OriginalFileName, Prefix);
 
         return (Document, replacementValues);
     }
