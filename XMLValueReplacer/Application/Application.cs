@@ -1,5 +1,6 @@
 ﻿using XMLValueReplacer.Common;
-using XMLValueReplacer.Domain.Enums;
+using XMLValueReplacer.Domain.Entities;
+using XMLValueReplacer.Generators;
 using XMLValueReplacer.Infrastructure;
 
 namespace XMLValueReplacer;
@@ -8,36 +9,43 @@ internal class Application
 {
     private readonly IConsoleHandler _consoleHandler;
     private readonly IXmlHandler _xmlHandler;
+    private readonly IFileGeneratorFactory _fileGeneratorFactory;
 
-    public Application(IConsoleHandler consoleHandler, IXmlHandler xmlHandler)
+    public Application(IConsoleHandler consoleHandler, IXmlHandler xmlHandler, IFileGeneratorFactory fileGeneratorFactory)
     {
         _consoleHandler = consoleHandler;
         _xmlHandler = xmlHandler;
+        _fileGeneratorFactory = fileGeneratorFactory;
     }
 
     internal void Run()
     {
-        var filePathInput = _consoleHandler.ReadFilePathInput();
+        var applicationContext = CreateAppContext();
 
-        var xml = _xmlHandler.LoadXmlFromPath(filePathInput);
+        var xmlGenerator = _fileGeneratorFactory.GetFileGenerator<XmlGenerator>();
+        var excelGenerator = _fileGeneratorFactory.GetFileGenerator<ExcelGenerator>();
 
-        var prefixInput = _consoleHandler.SetPrefix();
+        var xmlStatus = xmlGenerator.Generate(applicationContext);
+        if (!xmlStatus.IsSuccessful)
+            _consoleHandler.WriteError_Exit0(xmlStatus.ErrorMessage);
 
-        var xpathOptions = _consoleHandler.SetXPathOptions();
+        var excelStatus = excelGenerator.Generate(applicationContext);
+        if (!excelStatus.IsSuccessful)
+            _consoleHandler.WriteError_Exit0(xmlStatus.ErrorMessage);
 
-        var generator = new TemplateGenerator(xml, prefixInput, filePathInput!, xpathOptions);
-
-        var generated = generator.Generate();
-
-        var xmlFilePath = Helper.CreateFilePath(FileType.Xml, generator.FileName, generator.OriginalFileName);
-        var textFilePath = Helper.CreateFilePath(FileType.Txt, generator.TextFileName);
-
-        generated.Document.Save(xmlFilePath);
-
-        //File.WriteAllText(textFilePath, generated.ReplacementValues);
-
-        _consoleHandler.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(generator.FileName)}");
+        _consoleHandler.WriteLine($"Successfully created template.xml at path: {Helper.GetFilePath(applicationContext.FileName)}");
         _consoleHandler.WaitForExitKey();
+    }
+
+    private ApplicationContext CreateAppContext()
+    {
+        var filePathInput = _consoleHandler.ReadFilePathInput();
+        var xml = _xmlHandler.LoadXmlFromPath(filePathInput);
+        var prefixInput = _consoleHandler.SetPrefix();
+        var xpathOptions = _consoleHandler.SetXPathOptions();
+        var applicationContext = new ApplicationContext(xml, prefixInput, xpathOptions, Helper.GetFileNameFromPath(filePathInput));
+
+        return applicationContext;
     }
 }
 

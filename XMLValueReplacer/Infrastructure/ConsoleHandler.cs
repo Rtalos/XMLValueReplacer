@@ -46,7 +46,7 @@ internal class ConsoleHandler : IConsoleHandler
 
         if (string.IsNullOrEmpty(@filePathInput))
         {
-            WriteError("No path was given");
+            WriteError_Exit0("No path was given");
         }
 
         return filePathInput!;
@@ -58,7 +58,7 @@ internal class ConsoleHandler : IConsoleHandler
         Console.ReadKey();
     }
 
-    public void WriteError(string message)
+    public void WriteError_Exit0(string message)
     {
         Console.BackgroundColor = ConsoleColor.Red;
         Console.WriteLine(message);
@@ -69,9 +69,9 @@ internal class ConsoleHandler : IConsoleHandler
         Environment.Exit(0);
     }
 
-    public void WriteError<TException>(TException exception) where TException : Exception
+    public void WriteError_Exit0<TException>(TException exception) where TException : Exception
     {
-        WriteError(exception.Message);
+        WriteError_Exit0(exception.Message);
     }
 
     public void WriteLine(string text)

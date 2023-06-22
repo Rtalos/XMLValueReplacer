@@ -1,5 +1,7 @@
 using System.Xml.Linq;
+using XMLValueReplacer.Domain.Entities;
 using XMLValueReplacer.Domain.Enums;
+using XMLValueReplacer.Generators;
 
 namespace Tests;
 
@@ -17,12 +19,14 @@ public class TemplateGeneratorTests
     [TestMethod]
     public void GeneratedXML_Correct()
     {
-        var generator = new TemplateGenerator(_document!, "prefix:", "original.xml", XPathOptions.XPath);
+        var applicationContext = new ApplicationContext(_document!, "prefix:", XPathOptions.XPath, "original.xml");
+        var xmlGenerator = new XmlGenerator();
 
-        var result = generator.Generate();
+        var status = xmlGenerator.Generate(applicationContext);
 
-        var templateXml = $"{result.Document.Declaration}{Environment.NewLine}{result.Document}";
+        var templateXml = $"{applicationContext.Document.Declaration}{Environment.NewLine}{applicationContext.Document}";
 
+        Assert.IsTrue(status.IsSuccessful);
         Assert.AreEqual(TestData.AssertionTemplateXML, templateXml);
     }
 }

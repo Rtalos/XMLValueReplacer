@@ -11,7 +11,7 @@ internal interface IConsoleHandler
     string ReadFilePathInput();
     void WaitForExitKey();
     void WriteLine(string text);
-    void WriteError(string message);
-    void WriteError<TException>(TException exception) where TException : Exception;
+    void WriteError_Exit0(string message);
+    void WriteError_Exit0<TException>(TException exception) where TException : Exception;
 }
 
