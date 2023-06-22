@@ -1,43 +1,30 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using System.Xml;
+﻿using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using System.Xml.XPath;
+using System.Xml;
 using XMLValueReplacer.Common;
 using XMLValueReplacer.Domain.Entities;
 using XMLValueReplacer.Domain.Enums;
+using System.Xml.XPath;
+using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Tests")]
 
-namespace XMLValueReplacer;
+namespace XMLValueReplacer.Generators;
 
-internal class TemplateGenerator
+internal class XmlGenerator : IFileGenerator
 {
-    public string FileName { get; } = "modified";
-    public string TextFileName { get; } = "replacementvalues.txt";
-    public string Prefix { get; }
-    public string OriginalFileName { get; }
-    public XPathOptions XPathOptions { get; }
-    private XDocument Document { get; }
-
-    public TemplateGenerator(XDocument document, string prefix, string originalFileName, XPathOptions xPathOptions)
+    public GeneratorStatusResponse Generate(ApplicationContext applicationContext)
     {
-        if (document is null)
-            throw new ArgumentNullException(nameof(document));
+        Console.WriteLine("Generating xml file...");
 
-        Document = document;
-        Prefix = prefix;
-        XPathOptions = xPathOptions;
-        OriginalFileName = Helper.GetFileNameFromPath(originalFileName);
-    }
-
-    public (XDocument Document, string ReplacementValues) Generate()
-    {
         var xmlInformation = new XmlInformation();
+        var status = new GeneratorStatusResponse();
 
-        CreateXPaths(xmlInformation, XPathOptions, Document);
-        var namespaceManager = GetnamespaceManager(xmlInformation);
+        CreateXPaths(xmlInformation, applicationContext.XPathOptions, applicationContext.Document, applicationContext.Prefix);
+        var nameSpaceResponse = GetnamespaceManager(status, xmlInformation);
+
+        if (!nameSpaceResponse.status.IsSuccessful)
+            return status;
 
         var nodeObj = xmlInformation.NodeInformation.Select(x => x.FullNameXPath).GroupBy(x => x)
                       .Where(g => g.Count() > 1)
@@ -46,17 +33,21 @@ internal class TemplateGenerator
         var dupes = nodeObj.Select(x => x.Element);
         var remainingXPaths = xmlInformation.NodeInformation.Select(x => x.FullNameXPath).Except(dupes);
 
-        ReplaceDoubles(xmlInformation, namespaceManager, nodeObj);
-        ReplaceSingles(xmlInformation, namespaceManager, remainingXPaths);
+        if (!ReplaceDoubles(status, applicationContext.Document, xmlInformation, nameSpaceResponse.namespaceManager, nodeObj).IsSuccessful)
+            return status;
 
-        string replacementValues = Helper.GenerateTxtFile(xmlInformation, Prefix);
+        if (!ReplaceSingles(status, applicationContext.Document, xmlInformation, nameSpaceResponse.namespaceManager, remainingXPaths).IsSuccessful)
+            return status;
 
-        Helper.GenerateExcelFile(xmlInformation, FileName, OriginalFileName, Prefix);
+        applicationContext.XmlInformation = xmlInformation;
 
-        return (Document, replacementValues);
+        var xmlFilePath = Helper.CreateFilePath(FileType.Xml, applicationContext.FileName, applicationContext.OriginalFileName);
+        applicationContext.Document.Save(xmlFilePath);
+
+        return status;
     }
 
-    private XmlNamespaceManager GetnamespaceManager(XmlInformation xmlInformation)
+    private (XmlNamespaceManager namespaceManager, GeneratorStatusResponse status) GetnamespaceManager(GeneratorStatusResponse status, XmlInformation xmlInformation)
     {
         var manager = new XmlNamespaceManager(new NameTable());
 
@@ -69,10 +60,10 @@ internal class TemplateGenerator
 
             manager.AddNamespace(shortened, ns);
         }
-        return manager;
+        return (manager, status);
     }
 
-    private void CreateXPaths(XmlInformation xmlInformation, XPathOptions xpathOptions, XDocument doc)
+    private void CreateXPaths(XmlInformation xmlInformation, XPathOptions xpathOptions, XDocument doc, string prefix)
     {
         var namespaceMappings = new Dictionary<string, string>();
 
@@ -101,7 +92,7 @@ internal class TemplateGenerator
 
             foreach (var ns in xmlInformation.Namespaces)
             {
-                var shortened = Helper.RandomString(3);
+                var shortened = RandomString(3);
                 namespaceMappings.TryAdd(ns, shortened);
             }
 
@@ -110,14 +101,14 @@ internal class TemplateGenerator
                 fullNameXPath = fullNameXPath.Replace($"{{{ns}}}", $"{namespaceMappings.GetValueOrDefault(ns)}:");
             }
 
-            var nodeInformation = new NodeInformation(fullNameXPath, $"{{{Prefix}{nameReplacement}}}");
+            var nodeInformation = new NodeInformation(fullNameXPath, $"{{{prefix}{nameReplacement}}}");
 
             xmlInformation.NamespaceMappings = namespaceMappings;
             xmlInformation.NodeInformation.Add(nodeInformation);
         }
     }
 
-    private void ReplaceDoubles(XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, List<(string Element, int Counter)> nodeObj)
+    private GeneratorStatusResponse ReplaceDoubles(GeneratorStatusResponse status, XDocument document, XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, List<(string Element, int Counter)> nodeObj)
     {
         foreach (var element in nodeObj)
         {
@@ -126,23 +117,31 @@ internal class TemplateGenerator
                 XElement? node = null;
                 if (i == 0)
                 {
-                    node = Document.XPathSelectElement($"//{element.Element}", namespaceManager);
+                    node = document.XPathSelectElement($"//{element.Element}", namespaceManager);
                 }
 
                 if (i > 0)
                 {
-                    node = Document.XPathSelectElement($"(//{element.Element})[{i + 1}]", namespaceManager);
+                    node = document.XPathSelectElement($"(//{element.Element})[{i + 1}]", namespaceManager);
                 }
 
                 if (node is null)
-                    throw new NullReferenceException($"Could not find node with XPath: //{element.Element}");
+                {
+                    status.Exception = new NullReferenceException($"Could not find node with XPath: //{element.Element}");
+                    status.IsSuccessful = false;
+                    return status;
+                }
 
                 if (!node.HasElements)
                 {
                     var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.ModifiedFullNameXPath == element.Element);
 
                     if (nodeInformation is null)
-                        throw new NullReferenceException($"Could not find replacement value for XPath: //{element.Element}");
+                    {
+                        status.Exception = new NullReferenceException($"Could not find replaement value for XPath: //{element.Element}");
+                        status.IsSuccessful = false;
+                        return status;
+                    }
 
                     var replacement = nodeInformation.NameReplacement.Replace("}", $"{i + 1}}}");
                     nodeInformation.NameReplacement = replacement;
@@ -155,23 +154,33 @@ internal class TemplateGenerator
                 }
             }
         }
+
+        return status;
     }
 
-    private void ReplaceSingles(XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, IEnumerable<string> remainingXPaths)
+    private GeneratorStatusResponse ReplaceSingles(GeneratorStatusResponse status, XDocument document, XmlInformation xmlInformation, XmlNamespaceManager namespaceManager, IEnumerable<string> remainingXPaths)
     {
         foreach (var xpath in remainingXPaths)
         {
-            var node = Document.XPathSelectElement($"//{xpath}", namespaceManager);
+            var node = document.XPathSelectElement($"//{xpath}", namespaceManager);
 
             if (node is null)
-                throw new NullReferenceException($"Could not find node with XPath: //{xpath}");
+            {
+                status.Exception = new NullReferenceException($"Could not find node with XPath: //{xpath}");
+                status.IsSuccessful = false;
+                return status;
+            }
 
             if (!node.HasElements)
             {
                 var nodeInformation = xmlInformation.NodeInformation.FirstOrDefault(x => x.FullNameXPath == xpath);
 
                 if (nodeInformation is null)
-                    throw new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
+                {
+                    status.Exception = new NullReferenceException($"Could not find replacement value for XPath: //{xpath}");
+                    status.IsSuccessful = false;
+                    return status;
+                }
 
                 nodeInformation.OriginalNodeValue = node.Value;
 
@@ -180,6 +189,16 @@ internal class TemplateGenerator
                 node.SetValue(nodeInformation.NameReplacement);
             }
         }
+
+        return status;
+    }
+
+    private string RandomString(int length)
+    {
+        var random = new Random();
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 }
 

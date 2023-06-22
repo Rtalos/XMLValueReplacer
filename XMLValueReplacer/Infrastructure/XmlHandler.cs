@@ -21,15 +21,15 @@ internal class XmlHandler : IXmlHandler
         }
         catch (IOException e)
         {
-            _consoleHandler.WriteError(e);
+            _consoleHandler.WriteError_Exit0(e);
         }
         catch (XmlException e)
         {
-            _consoleHandler.WriteError(e);
+            _consoleHandler.WriteError_Exit0(e);
         }
 
         if (xml is null)
-            _consoleHandler.WriteError("File was not found");
+            _consoleHandler.WriteError_Exit0("File was not found");
 
         return xml!;
     }
