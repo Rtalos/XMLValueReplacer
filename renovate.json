@@ -5,7 +5,7 @@
     {
       "matchPaths": ["XMLValueReplacer/XMLValueReplacer.csproj"],
       "matchPackagePatterns": ["*"],
-      "extends": [":semanticCommitScope(all,worker)"]
+      "extends": [":semanticCommits",":semanticCommitScope(all,worker)"]
     }
   ],
   "prConcurrentLimit": 5,
